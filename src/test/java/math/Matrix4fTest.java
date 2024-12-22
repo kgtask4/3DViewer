@@ -88,7 +88,7 @@ public class Matrix4fTest {
 
     @Test
     public void testLookAt() {
-        // Проверка матрицы вида (LookAt): точка, находящаяся на целевой позиции, должна оказаться в центре координат камеры.
+        // Точка должна оказаться в центре координат камеры
         Vector3f eye = new Vector3f(0f,0f,10f);
         Vector3f target = new Vector3f(0f,0f,0f);
         Vector3f up = new Vector3f(0f,1f,0f);
@@ -97,24 +97,22 @@ public class Matrix4fTest {
         Vector3f v = new Vector3f(0f,0f,0f);
         Vector3f res = view.mul(v);
 
-        // После преобразования целевая точка должна быть спроецирована в центр камеры
         Assertions.assertEquals(0f, res.x, 1e-7);
         Assertions.assertEquals(0f, res.y, 1e-7);
-        Assertions.assertTrue(res.z < 0f); // Точка должна оказаться на оси Z с отрицательным значением
+        Assertions.assertTrue(res.z < 0f);
     }
 
     @Test
     public void testPerspective() {
-        // Проверка перспективной матрицы: убедимся, что матрица имеет ожидаемые значения.
         Matrix4f p = Matrix4f.perspective((float)Math.toRadians(90), 1f, 0.1f, 100f);
 
-        // Проверка, что p[0,0] соответствует 1/(tan(fov/2)) при aspect = 1
+        // p[0,0] должен быть ~ 1/(tan(fov/2)) при aspect = 1
+        // fov=90°, tan(45°)=1, 1/1=1
         Assertions.assertEquals(1f, p.get(0,0), 1e-6);
-        // Проверка, что p[1,1] такое же
+        // p[1,1] такое же
         Assertions.assertEquals(1f, p.get(1,1), 1e-6);
         // Проверка, что матрица не является единичной
         Assertions.assertNotEquals(1f, p.get(2,2), 1e-6);
         Assertions.assertEquals(-1f, p.get(3,2), 1e-6);
     }
 }
-

@@ -43,7 +43,6 @@ public class Vector3fTest {
         Vector3f v2 = new Vector3f(0f, 1f, 0f);
         Vector3f cross = v1.cross(v2);
 
-        // cross product should be (0, 0, 1)
         Assertions.assertEquals(0f, cross.x, 1e-7);
         Assertions.assertEquals(0f, cross.y, 1e-7);
         Assertions.assertEquals(1f, cross.z, 1e-7);
