@@ -1,5 +1,6 @@
 package ru.vsu.cs.obj_reader;
 
+
 import ru.vsu.cs.math.Vector2f;
 import ru.vsu.cs.math.Vector3f;
 import ru.vsu.cs.model.Model;

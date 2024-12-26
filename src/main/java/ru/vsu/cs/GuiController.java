@@ -10,6 +10,7 @@ import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -32,8 +33,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.List;
 
 enum ScaleAxis {
     X_AXIS,
@@ -51,7 +52,11 @@ public class GuiController {
     @FXML
     private Canvas canvas;
 
-    private Model mesh = null;
+    @FXML
+    private ComboBox<String> modelSelector;
+
+    private List<Model> models = new ArrayList<>();
+    private Model activeModel;
 
     private Camera camera = new Camera(
             new Vector3f(0, 0, 100),
@@ -99,8 +104,8 @@ public class GuiController {
                 camera.setAspectRatio((float) (width / height));
             }
 
-            if (mesh != null) {
-                RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) width, (int) height);
+            for (Model model : this.models) {
+                RenderEngine.render(canvas.getGraphicsContext2D(), camera, model, (int) width, (int) height);
             }
         });
 
@@ -117,22 +122,31 @@ public class GuiController {
                 newScene.setOnKeyPressed(e -> onKeyPressed(e));
             }
         });
+
+        modelSelector.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            int index = newValue.intValue();
+            if (index >= 0 && index < models.size()) {
+                activeModel = models.get(index);
+            }
+        });
     }
 
     private void updateModelScale(ScaleAxis axis, boolean negate) {
-        float scale = (negate ? 0.9f : 1.1f);
-        if (mesh != null) {
-            for (Vector3f vertex : mesh.vertices) {
-                switch(axis) {
-                    case X_AXIS -> vertex.x *= scale;
-                    case Y_AXIS -> vertex.y *= scale;
-                    case Z_AXIS -> vertex.z *= scale;
-                }
-            }
+        if (activeModel == null) {
+            return;
+        }
 
-            RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) canvas.getWidth(), (int) canvas.getHeight());
+        float scale = negate ? 0.9f : 1.1f;
+
+        for (Vector3f vertex : activeModel.vertices) {
+            switch (axis) {
+                case X_AXIS -> vertex.x *= scale;
+                case Y_AXIS -> vertex.y *= scale;
+                case Z_AXIS -> vertex.z *= scale;
+            }
         }
     }
+
 
     private void onKeyPressed(KeyEvent e) {
         boolean shiftPressed = e.isShiftDown();
@@ -258,14 +272,20 @@ public class GuiController {
 
         try {
             String fileContent = Files.readString(fileName);
-            mesh = ObjReader.read(fileContent);
+            Model model = ObjReader.read(fileContent);
+            this.models.add(model);
+
+            modelSelector.getItems().add("Model " + (models.size()));
+            if (models.size() == 1) {
+                modelSelector.getSelectionModel().select(0);
+            }
         } catch (IOException exception) {
             exception.printStackTrace();
         }
     }
 
     private void rotateModelAroundAxis(float axisX, float axisY, float axisZ, float angle) {
-        if (mesh == null) return;
+        if (activeModel == null) return;
 
         float axisLength = (float) Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
         axisX /= axisLength;
@@ -296,7 +316,7 @@ public class GuiController {
                 {0, 0, 0, 1}
         };
 
-        for (Vector3f vertex : mesh.vertices) {
+        for (Vector3f vertex : activeModel.vertices) {
             float[] vertexPos = {vertex.x, vertex.y, vertex.z, 1};
             float[] transformedPos = new float[4];
 
@@ -312,7 +332,7 @@ public class GuiController {
             vertex.z = transformedPos[2];
         }
 
-        RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) canvas.getWidth(), (int) canvas.getHeight());
+        RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight());
     }
 
     @FXML
@@ -351,7 +371,7 @@ public class GuiController {
                 float y = Float.parseFloat(yField.getText());
                 float z = Float.parseFloat(zField.getText());
 
-                if (mesh != null) {
+                if (activeModel != null) {
                     float[][] translationMatrix = {
                             {1, 0, 0, x},
                             {0, 1, 0, y},
@@ -359,7 +379,7 @@ public class GuiController {
                             {0, 0, 0, 1}
                     };
 
-                    for (Vector3f vertex : mesh.vertices) {
+                    for (Vector3f vertex : activeModel.vertices) {
                         float[] vertexPos = {vertex.x, vertex.y, vertex.z, 1};
                         float[] transformedPos = new float[4];
 
@@ -375,7 +395,7 @@ public class GuiController {
                         vertex.z = transformedPos[2];
                     }
 
-                    RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) canvas.getWidth(), (int) canvas.getHeight());
+                    RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight());
                 }
             } catch (NumberFormatException e) {
                 event.consume();
@@ -426,4 +446,3 @@ public class GuiController {
         updateCameraPosition();
     }
 }
-
