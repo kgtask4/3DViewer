@@ -5,12 +5,20 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -24,6 +32,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 enum ScaleAxis {
     X_AXIS,
@@ -148,6 +158,9 @@ public class GuiController {
                 pitch += 0.05f;
                 updateCameraPosition();
                 break;
+            case P:
+                rotateModelAroundAxis(0, 1, 0, (float) Math.toRadians(15));
+                break;
             case F:
                 pitch -= 0.05f;
                 updateCameraPosition();
@@ -251,6 +264,132 @@ public class GuiController {
         }
     }
 
+    private void rotateModelAroundAxis(float axisX, float axisY, float axisZ, float angle) {
+        if (mesh == null) return;
+
+        float axisLength = (float) Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+        axisX /= axisLength;
+        axisY /= axisLength;
+        axisZ /= axisLength;
+
+        float cos = (float) Math.cos(angle);
+        float sin = (float) Math.sin(angle);
+        float[][] rotationMatrix = {
+                {
+                        cos + axisX * axisX * (1 - cos),
+                        axisX * axisY * (1 - cos) - axisZ * sin,
+                        axisX * axisZ * (1 - cos) + axisY * sin,
+                        0
+                },
+                {
+                        axisY * axisX * (1 - cos) + axisZ * sin,
+                        cos + axisY * axisY * (1 - cos),
+                        axisY * axisZ * (1 - cos) - axisX * sin,
+                        0
+                },
+                {
+                        axisZ * axisX * (1 - cos) - axisY * sin,
+                        axisZ * axisY * (1 - cos) + axisX * sin,
+                        cos + axisZ * axisZ * (1 - cos),
+                        0
+                },
+                {0, 0, 0, 1}
+        };
+
+        for (Vector3f vertex : mesh.vertices) {
+            float[] vertexPos = {vertex.x, vertex.y, vertex.z, 1};
+            float[] transformedPos = new float[4];
+
+            for (int i = 0; i < 4; i++) {
+                transformedPos[i] = 0;
+                for (int j = 0; j < 4; j++) {
+                    transformedPos[i] += rotationMatrix[i][j] * vertexPos[j];
+                }
+            }
+
+            vertex.x = transformedPos[0];
+            vertex.y = transformedPos[1];
+            vertex.z = transformedPos[2];
+        }
+
+        RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) canvas.getWidth(), (int) canvas.getHeight());
+    }
+
+    @FXML
+    public void handleTeleportMenu(ActionEvent actionEvent) {
+        Dialog<Vector3f> dialog = new Dialog<>();
+        dialog.setTitle("Перемещение объекта");
+        dialog.setHeaderText("Введите координаты для перемещения объекта");
+
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(10);
+        gridPane.setVgap(10);
+        gridPane.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField xField = new TextField();
+        xField.setPromptText("X");
+        TextField yField = new TextField();
+        yField.setPromptText("Y");
+        TextField zField = new TextField();
+        zField.setPromptText("Z");
+
+        gridPane.add(new Label("X:"), 0, 0);
+        gridPane.add(xField, 1, 0);
+        gridPane.add(new Label("Y:"), 0, 1);
+        gridPane.add(yField, 1, 1);
+        gridPane.add(new Label("Z:"), 0, 2);
+        gridPane.add(zField, 1, 2);
+
+        dialog.getDialogPane().setContent(gridPane);
+
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Node okButton = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(ActionEvent.ACTION, event -> {
+            try {
+                float x = Float.parseFloat(xField.getText());
+                float y = Float.parseFloat(yField.getText());
+                float z = Float.parseFloat(zField.getText());
+
+                if (mesh != null) {
+                    float[][] translationMatrix = {
+                            {1, 0, 0, x},
+                            {0, 1, 0, y},
+                            {0, 0, 1, z},
+                            {0, 0, 0, 1}
+                    };
+
+                    for (Vector3f vertex : mesh.vertices) {
+                        float[] vertexPos = {vertex.x, vertex.y, vertex.z, 1};
+                        float[] transformedPos = new float[4];
+
+                        for (int i = 0; i < 4; i++) {
+                            transformedPos[i] = 0;
+                            for (int j = 0; j < 4; j++) {
+                                transformedPos[i] += translationMatrix[i][j] * vertexPos[j];
+                            }
+                        }
+
+                        vertex.x = transformedPos[0];
+                        vertex.y = transformedPos[1];
+                        vertex.z = transformedPos[2];
+                    }
+
+                    RenderEngine.render(canvas.getGraphicsContext2D(), camera, mesh, (int) canvas.getWidth(), (int) canvas.getHeight());
+                }
+            } catch (NumberFormatException e) {
+                event.consume();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Ошибка");
+                alert.setHeaderText("Некорректный ввод");
+                alert.setContentText("Убедитесь, что вы ввели числа в каждое из полей.");
+                alert.showAndWait();
+            }
+        });
+
+        dialog.showAndWait();
+    }
+
     @FXML
     public void handleCameraForward(ActionEvent actionEvent) {
         distance = Math.max(0.1f, distance - TRANSLATION);
@@ -287,3 +426,4 @@ public class GuiController {
         updateCameraPosition();
     }
 }
+

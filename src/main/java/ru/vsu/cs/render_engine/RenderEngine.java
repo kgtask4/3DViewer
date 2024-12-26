@@ -12,7 +12,6 @@ import static ru.vsu.cs.render_engine.GraphicConveyor.multiplyMatrix4ByVector3;
 import static ru.vsu.cs.render_engine.GraphicConveyor.rotateScaleTranslate;
 import static ru.vsu.cs.render_engine.GraphicConveyor.vertexToPoint;
 
-
 public class RenderEngine {
 
     public static void render(

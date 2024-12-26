@@ -20,7 +20,7 @@ public class Simple3DViewer extends Application {
         viewport.prefWidthProperty().bind(scene.widthProperty());
         viewport.prefHeightProperty().bind(scene.heightProperty());
 
-        stage.setTitle("Simple3DViewer");
+        stage.setTitle("3DViewer");
         stage.setScene(scene);
         stage.show();
     }
