@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.canvas.Canvas?>
 
+<?import javafx.scene.control.Button?>
 <AnchorPane fx:id="anchorPane" xmlns:fx="http://javafx.com/fxml" fx:controller="ru.vsu.cs.GuiController">
     <MenuBar>
         <Menu mnemonicParsing="false" text="File">
@@ -51,4 +52,5 @@
     </MenuBar>
 
     <Canvas fx:id="canvas" width="1600" height="870" AnchorPane.topAnchor="30.0"/>
+    <Button layoutX="164.0" layoutY="2.0" mnemonicParsing="false" onAction="#handleTeleportMenu" text="TeleportMenu" />
 </AnchorPane>
