@@ -3,17 +3,14 @@ package ru.vsu.cs;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -23,9 +20,12 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import ru.vsu.cs.deleting.VerticesDeleting;
 import ru.vsu.cs.math.Vector3f;
 import ru.vsu.cs.model.Model;
+import ru.vsu.cs.model.Polygon;
 import ru.vsu.cs.obj_reader.ObjReader;
+import ru.vsu.cs.obj_writer.ObjWriter;
 import ru.vsu.cs.render_engine.Camera;
 import ru.vsu.cs.render_engine.RenderEngine;
 
@@ -78,6 +78,12 @@ public class GuiController {
     private float pitch = 0.0f;
     private float distance = 100f;
 
+
+    @FXML
+    private ListView<String> vertexListView;
+    @FXML
+    private ListView<String> polygonListView;
+
     private void updateCameraPosition() {
         Vector3f target = camera.getTarget();
         float cx = (float) (target.x + distance * Math.cos(pitch) * Math.sin(yaw));
@@ -105,7 +111,8 @@ public class GuiController {
             }
 
             for (Model model : this.models) {
-                RenderEngine.render(canvas.getGraphicsContext2D(), camera, model, (int) width, (int) height);
+                boolean isActive = model.equals(activeModel);
+                RenderEngine.render(canvas.getGraphicsContext2D(), camera, model, (int) width, (int) height, isActive);
             }
         });
 
@@ -127,9 +134,19 @@ public class GuiController {
             int index = newValue.intValue();
             if (index >= 0 && index < models.size()) {
                 activeModel = models.get(index);
+                System.out.println("Active model updated: " + activeModel);
+                updateUI();
+            } else {
+                activeModel = null;
+                System.out.println("Active model reset to null.");
             }
         });
     }
+
+    public boolean isActive() {
+        return this.equals(activeModel);
+    }
+
 
     private void updateModelScale(ScaleAxis axis, boolean negate) {
         if (activeModel == null) {
@@ -332,7 +349,7 @@ public class GuiController {
             vertex.z = transformedPos[2];
         }
 
-        RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight());
+        RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight(), isActive());
     }
 
     @FXML
@@ -395,7 +412,7 @@ public class GuiController {
                         vertex.z = transformedPos[2];
                     }
 
-                    RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight());
+                    RenderEngine.render(canvas.getGraphicsContext2D(), camera, activeModel, (int) canvas.getWidth(), (int) canvas.getHeight(), isActive());
                 }
             } catch (NumberFormatException e) {
                 event.consume();
@@ -445,4 +462,97 @@ public class GuiController {
         pitch -= 0.05f;
         updateCameraPosition();
     }
+
+    @FXML
+    private void deleteSelectedVertex() {
+        ObservableList<String> selectedVertices = vertexListView.getSelectionModel().getSelectedItems();
+
+        if (selectedVertices != null && !selectedVertices.isEmpty()) {
+            if (activeModel == null) {
+                showAlert("Error", "Active model is not initialized. Please select a model.");
+                return;
+            }
+
+            try {
+                List<Integer> vertexIndices = new ArrayList<>();
+                for (String selectedVertex : selectedVertices) {
+                    System.out.println("Processing vertex: " + selectedVertex);
+                    String indexString = selectedVertex.split(" ")[1];
+                    System.out.println("Extracted index: " + indexString);
+                    int vertexIndex = Integer.parseInt(indexString) - 1;
+                    vertexIndices.add(vertexIndex);
+                }
+                System.out.println("Vertices to delete: " + vertexIndices);
+                VerticesDeleting.vertexDeleting(activeModel, vertexIndices);
+                System.out.println("Vertices deleted successfully");
+                updateUI();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert("Error", "Failed to delete selected vertices.");
+            }
+        } else {
+            showAlert("Error", "No vertices selected for deletion.");
+        }
+    }
+
+
+
+    @FXML
+    private void saveModel() {
+        if (activeModel != null) {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("OBJ Files", "*.obj"));
+            File selectedFile = fileChooser.showSaveDialog(null);
+
+            if (selectedFile != null) {
+                if (!selectedFile.getName().endsWith(".obj")) {
+                    showAlert("Error", "File is not .obj");
+                    return;
+                }
+
+                try {
+                    ObjWriter writer = new ObjWriter();
+                    writer.write(activeModel, selectedFile.getAbsolutePath());
+                    showAlert("Success", "Model saved successfully.");
+                } catch (Exception e) {
+                    showAlert("Error", "Failed to save model.");
+                }
+            }
+        } else {
+            showAlert("Error", "No model to save.");
+        }
+    }
+
+    private void updateUI() {
+        if (activeModel != null) {
+            List<Vector3f> vertices = activeModel.getVertices();
+            List<Polygon> polygons = activeModel.getPolygons();
+
+            ObservableList<String> vertexItems = FXCollections.observableArrayList();
+            for (int i = 0; i < vertices.size(); i++) {
+                vertexItems.add("Vertex " + (i + 1) + " " + vertices.get(i).toString());
+            }
+
+            ObservableList<String> polygonItems = FXCollections.observableArrayList();
+            for (int i = 0; i < polygons.size(); i++) {
+                polygonItems.add("Polygon " + (i + 1) + " " + polygons.get(i).toString());
+            }
+
+            vertexListView.setItems(vertexItems);
+            polygonListView.setItems(polygonItems);
+        } else {
+            vertexListView.setItems(FXCollections.emptyObservableList());
+            polygonListView.setItems(FXCollections.emptyObservableList());
+        }
+    }
+
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
 }

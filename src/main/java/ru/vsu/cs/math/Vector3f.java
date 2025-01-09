@@ -67,9 +67,23 @@ public class Vector3f {
             this.z /= len;
         }
     }
+    public float getX() {
+        return x;
+    }
 
+    public float getY() {
+        return y;
+    }
+
+    public float getZ() {
+        return z;
+    }
     public boolean equals(Vector3f other) {
         final float eps = 1e-7f;
         return Math.abs(x - other.x) < eps && Math.abs(y - other.y) < eps && Math.abs(z - other.z) < eps;
+    }
+
+    public String toString() {
+        return String.format("(%f, %f, %f)", x, y, z);
     }
 }

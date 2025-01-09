@@ -16,6 +16,13 @@ public class Vector2f {
         this.x = other.x;
         this.y = other.y;
     }
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
 
     public Vector2f add(Vector2f other) {
         return new Vector2f(this.x + other.x, this.y + other.y);

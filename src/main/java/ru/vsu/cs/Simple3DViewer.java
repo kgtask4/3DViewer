@@ -3,6 +3,7 @@ package ru.vsu.cs;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
@@ -20,7 +21,10 @@ public class Simple3DViewer extends Application {
         viewport.prefWidthProperty().bind(scene.widthProperty());
         viewport.prefHeightProperty().bind(scene.heightProperty());
 
-        stage.setTitle("Simple3DViewer");
+        Image icon = new Image(Objects.requireNonNull(getClass().getResource("/ru/vsu/cs/icon.png")).toExternalForm());
+        stage.getIcons().add(icon);
+        stage.setTitle("3DViewer");
+        ;
         stage.setScene(scene);
         stage.show();
     }
