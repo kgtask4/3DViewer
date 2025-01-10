@@ -20,6 +20,8 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import ru.vsu.cs.deleting.PolygonDeleting;
+import ru.vsu.cs.deleting.PolygonException;
 import ru.vsu.cs.deleting.VerticesDeleting;
 import ru.vsu.cs.math.Vector3f;
 import ru.vsu.cs.model.Model;
@@ -33,8 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 enum ScaleAxis {
     X_AXIS,
@@ -495,6 +496,36 @@ public class GuiController {
         }
     }
 
+    public void deleteSelectedPolygon() {
+        ObservableList<String> selectedPolygons = polygonListView.getSelectionModel().getSelectedItems();
+        if (selectedPolygons != null && !selectedPolygons.isEmpty()) {
+            if (activeModel == null) {
+                showAlert("Error", "Active model is not initialized. Please select a model.");
+                return;
+            }
+
+            try {
+                List<Integer> vertexIndices = new ArrayList<>();
+                for (String selectedPolygon : selectedPolygons) {
+                    System.out.println("Processing polygon: " + selectedPolygon);
+                    String indexString = selectedPolygon.split(" ")[1];
+                    System.out.println("Extracted index: " + indexString);
+                    int polygonIndex = Integer.parseInt(indexString) - 1;
+                    vertexIndices.add(polygonIndex);
+                }
+                System.out.println("Polygons to delete: " + vertexIndices);
+                PolygonDeleting.deletePolygon(activeModel, vertexIndices);
+                System.out.println("Polygons deleted successfully");
+                updateUI();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert("Error", "Failed to delete selected polygons.");
+            }
+        } else {
+            showAlert("Error", "No polygons selected for deletion.");
+        }
+    }
+
 
 
     @FXML
@@ -554,5 +585,7 @@ public class GuiController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+
 
 }
