@@ -56,14 +56,23 @@
      <tabs>
        <Tab text="Lightning">
          <content>
-           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="306.0" prefWidth="371.0">
+                  <children>
+                     <ListView layoutX="14.0" layoutY="43.0" prefHeight="200.0" prefWidth="327.0" />
+                     <Label layoutX="14.0" layoutY="14.0" text="List of lightning" />
+                     <Button layoutX="14.0" layoutY="259.0" mnemonicParsing="false" text="Add new" />
+                     <Button layoutX="97.0" layoutY="259.0" mnemonicParsing="false" text="Delete selected" />
+                  </children></AnchorPane>
          </content>
        </Tab>
          <Tab text="View">
              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                <children>
-                  <Label layoutX="14.0" layoutY="10.0" text="Camera" />
-                   <Button layoutX="14.0" layoutY="324.0" mnemonicParsing="false" onAction="#handleTeleportMenu" text="Move" />
+                  <Label layoutX="14.0" layoutY="10.0" text="Cameras" />
+                   <Button layoutX="14.0" layoutY="299.0" mnemonicParsing="false" onAction="#handleTeleportMenu" text="Move" />
+                  <ListView layoutX="14.0" layoutY="34.0" prefHeight="200.0" prefWidth="200.0" />
+                  <Button layoutX="14.0" layoutY="248.0" mnemonicParsing="false" text="Add new" />
+                  <Button layoutX="89.0" layoutY="248.0" mnemonicParsing="false" text="Delete selected" />
                </children></AnchorPane>
          </Tab>
        <Tab text="Edit">
